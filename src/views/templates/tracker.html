@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Track your daily hydration with Hydration Tracker">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='tracker.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>HT {{ user.id }} Tracker</title>
+</head>
+<body>
+  <div class="water-background" aria-hidden="true"></div>
+  <div class="center-content">
+    <header>
+      <h1>Hydration Tracker</h1>
+      <h3>{{ user.name }}</h3>
+      <p>ID: {{ user.id }}</p>
+    </header>
+    
+    <main>
+      <div class="container">
+        <h2>{{ entry.date }} Hydration Intake</h2>
+        
+        <!-- Progress visualization -->
+        <div class="progress-container">
+          <div class="water-level-container">
+            <div class="water-level" style="height: {{ entry.goal_percent }}%;">
+              <div class="water-waves"></div>
+            </div>
+            <div class="water-percentage">{{ entry.goal_percent }}%</div>
+          </div>
+          <div class="stats-container">
+            <div class="stat-item">
+              <span class="stat-label">Goal:</span>
+              <span class="stat-value">{{ entry.goal }}ml</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Consumed:</span>
+              <span class="stat-value">{{ entry.consumed }}ml</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Remaining:</span>
+              <span class="stat-value">{{ entry.missing }}ml</span>
+            </div>
+          </div>
+        </div>
+        
+        <form id='tracker_form'>
+          <fieldset>
+            <legend>Record Hydration</legend>
+            <div class="fieldset-content">
+              <div class="cup-selector">
+                <div class="cup-option">
+                  <input type="radio" id="0" name="cupsize" value="250">
+                  <label for="0" class="cup-label">
+                    <div class="cup-icon small"></div>
+                    <span>Small (250ml)</span>
+                  </label>
+                </div>
+                <div class="cup-option">
+                  <input type="radio" id="1" name="cupsize" value="350">
+                  <label for="1" class="cup-label">
+                    <div class="cup-icon medium"></div>
+                    <span>Medium (350ml)</span>
+                  </label>
+                </div>
+                <div class="cup-option">
+                  <input type="radio" id="2" name="cupsize" value="500">
+                  <label for="2" class="cup-label">
+                    <div class="cup-icon large"></div>
+                    <span>Large (500ml)</span>
+                  </label>
+                </div>
+                <div class="cup-option">
+                  <input type="radio" id="3" name="cupsize" value="custom">
+                  <label for="3" class="cup-label">
+                    <div class="cup-icon custom"></div>
+                    <span>Custom</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div id="customCupContainer" class="custom-cup-container" style="display: none;">
+                <label for="customCupValue">Enter amount (ml):</label>
+                <input type="number" id="customCupValue" name="customCupValue" min="1" max="2000" step="1" value="100">
+              </div>
+            </div>
+          </fieldset>
+          <button type="submit" id="consumeBtn">Record Hydration</button>
+        </form>
+      </div>
+      
+      <hr class="break"/>
+      
+      <div class="container">
+        <h2>Today's History</h2>
+        <p>Here is your today hydration intake</p>
+        
+        <!-- Chart visualization -->
+        <div class="chart-container">
+          <canvas id="hydrationChart"></canvas>
+        </div>
+        
+        <div class="summary-table">
+          <table>
+            <tr>
+              <th>Today's goal:</th>
+              <td>{{ entry.goal }}ml</td>
+            </tr>
+            <tr>
+              <th>Missing:</th>
+              <td>{{ entry.missing }}ml</td>
+            </tr>
+            <tr>
+              <th>Consumed:</th>
+              <td>{{ entry.consumed }}ml</td>
+            </tr>
+            <tr>
+              <th>Goal percent:</th>
+              <td>{{ entry.goal_percent }}%</td>
+            </tr>
+            <tr>
+              <th>Goal reached?</th>
+              <td>{{ "Yes" if entry.goal_reached else "No" }}</td>
+            </tr>
+          </table>
+        </div>
+        
+        <button id="seeHistory">See full history</button>
+      </div>
+      
+      <!-- Notification element -->
+      <div id="notification" class="notification" role="alert" aria-live="assertive"></div>
+    </main>
+    
+    <footer>
+      <p>&copy; 2023 Hydration Tracker</p>
+    </footer>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    // Show notification function
+    function showNotification(message, isError = false) {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.className = isError ? 'notification error' : 'notification success';
+      notification.style.display = 'block';
+      
+      setTimeout(() => {
+        notification.style.display = 'none';
+      }, 3000);
+    }
+    
+    // Handle custom cup size selection
+    document.querySelectorAll('input[name="cupsize"]').forEach(input => {
+      input.addEventListener('change', function() {
+        const customCupContainer = document.getElementById('customCupContainer');
+        if (this.value === 'custom') {
+          customCupContainer.style.display = 'block';
+        } else {
+          customCupContainer.style.display = 'none';
+        }
+      });
+    });
+    
+    // Form submission handling
+    document.getElementById('tracker_form').addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      const selectedCupSize = document.querySelector('input[name="cupsize"]:checked');
+      if (!selectedCupSize) {
+          showNotification("Please select a cup size", true);
+          return;
+      }
+      
+      let cupsize;
+      if (selectedCupSize.value === 'custom') {
+        const customValue = document.getElementById('customCupValue').value;
+        if (!customValue || isNaN(customValue) || customValue <= 0 || customValue > 2000) {
+          showNotification("Please enter a valid amount between 1-2000ml", true);
+          return;
+        }
+        cupsize = parseInt(customValue);
+      } else {
+        cupsize = parseInt(selectedCupSize.value);
+      }
+
+      // Disable button and show loading state
+      const submitBtn = document.getElementById('consumeBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Recording...';
+
+      const formData = {
+          cupsize: cupsize,
+      };
+
+      fetch('/user/{{ user.id }}/tracker/{{ entry.date }}', {
+          method: 'PUT',
+          headers: {
+              'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+      })
+      .then(response => {
+          if (!response.ok) {
+              throw new Error('Failed to update tracker');
+          }
+          return response.json();
+      })
+      .then(data => {
+          console.log('Success:', data);
+          showNotification(`Added ${cupsize}ml of water!`);
+          setTimeout(() => {
+              window.location.href = "/app/{{ user.id }}/tracker/{{ entry.date }}";
+          }, 1000);
+      })
+      .catch(error => {
+          console.error('Error:', error);
+          showNotification('Failed to record hydration. Please try again.', true);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Record Hydration';
+      });
+    });
+    
+    // History button handler
+    document.getElementById('seeHistory').addEventListener('click', function(event) {
+      event.preventDefault();
+      window.location.href = '/app/{{ user.id }}/history';
+    });
+    
+    // Initialize chart
+    document.addEventListener('DOMContentLoaded', function() {
+      const ctx = document.getElementById('hydrationChart').getContext('2d');
+      
+      const hydrationChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Consumed', 'Remaining'],
+          datasets: [{
+            data: [{{ entry.consumed }}, {{ entry.missing }}],
+            backgroundColor: [
+              'rgba(54, 162, 235, 0.8)',
+              'rgba(211, 211, 211, 0.8)'
+            ],
+            borderColor: [
+              'rgba(54, 162, 235, 1)',
+              'rgba(211, 211, 211, 1)'
+            ],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom',
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.raw || 0;
+                  return `${label}: ${value}ml`;
+                }
+              }
+            }
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

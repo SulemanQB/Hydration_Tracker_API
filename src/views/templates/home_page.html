@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Hydration Tracker - Track your daily water intake">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='home_page.css') }}">
+  <title>Hydration Tracker - Home</title>
+</head>
+
+<body>
+  <div class="water-background" aria-hidden="true"></div>
+  <main class="center-content">
+    <h1>Hydration Tracker</h1>
+    
+    <section class="container" aria-labelledby="register-heading">
+      <h2 id="register-heading">Register Person</h2>
+      <form id="registerForm" aria-label="Registration form">
+        <div class="input-group">
+          <label for="name">Name:</label>
+          <input type="text" id="name" name="name" required aria-required="true">
+        </div>
+        <div class="input-group">
+          <label for="weight">Weight (kg):</label>
+          <input type="number" id="weight" name="weight" step="1" min="1" max="500" required aria-required="true">
+        </div>
+        <button type="submit" id="submitBtn">Register</button>
+      </form>
+    </section>
+    
+    <hr class="break" aria-hidden="true"/>
+    
+    <section class="container" aria-labelledby="find-heading">
+      <h2 id="find-heading">Find Person</h2>
+      <form id="findForm" aria-label="Find person form">
+        <div class="input-group">
+          <label for="ID">ID number:</label>
+          <input type="text" id="ID" name="ID" required aria-required="true">
+        </div>
+        <button type="submit" id="findBtn">Find</button>
+      </form>
+    </section>
+  </main>
+
+  <div id="notification" class="notification" role="alert" aria-live="assertive"></div>
+
+  <script>
+    // Show notification function
+    function showNotification(message, isError = false) {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.className = isError ? 'notification error' : 'notification success';
+      notification.style.display = 'block';
+      
+      setTimeout(() => {
+        notification.style.display = 'none';
+      }, 3000);
+    }
+    
+    // Register form handling
+    document.getElementById('registerForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const name = document.getElementById('name').value.trim();
+        const weight = parseInt(document.getElementById('weight').value);
+        
+        if (!name) {
+          showNotification('Please enter a valid name', true);
+          return;
+        }
+        
+        if (isNaN(weight) || weight <= 0 || weight > 500) {
+          showNotification('Please enter a valid weight between 1-500 kg', true);
+          return;
+        }
+
+        const formData = {
+            name: name,
+            weight: weight
+        };
+
+        // Show loading state
+        document.getElementById('submitBtn').disabled = true;
+        document.getElementById('submitBtn').textContent = 'Registering...';
+
+        fetch('/user/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Registration failed');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(data);
+            window.location.href = "/app/" + data.id + "/tracker/";
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Could not register user, please try again.', true);
+            // Reset button state
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('submitBtn').textContent = 'Register';
+        });
+    });
+  
+    // Find form handling
+    document.getElementById('findForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const id = document.getElementById('ID').value.trim();
+        
+        if (!id) {
+          showNotification('Please enter a valid ID', true);
+          return;
+        }
+
+        // Show loading state
+        document.getElementById('findBtn').disabled = true;
+        document.getElementById('findBtn').textContent = 'Finding...';
+
+        fetch("/user/"+id+"/", {
+            method: 'GET',
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('User not found');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(data);
+            window.location.href = "/app/" + id + "/tracker/";
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('User not found', true);
+            // Reset button state
+            document.getElementById('findBtn').disabled = false;
+            document.getElementById('findBtn').textContent = 'Find';
+        });
+    });
+  </script>
+</body>
+</html>
+
