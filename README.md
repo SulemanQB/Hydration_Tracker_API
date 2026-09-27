@@ -69,6 +69,22 @@ docker build -t hydration_tracker_app .
 docker run -d -p 8000:8000 hydration_tracker_app
 ```
 
+HTTPS is optional. With `SSL_ENABLED` unset or false, the app listens over HTTP and does not read certificate files. To enable TLS, generate a certificate and private key locally (or mount them into the runtime) and set:
+
+```bash
+SSL_ENABLED=true
+SSL_CERT_PATH=/path/to/cert.pem
+SSL_KEY_PATH=/path/to/key.pem
+```
+
+Example local certificate (do not commit the files):
+
+```bash
+openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/CN=localhost"
+```
+
+`*.pem`, `cert.pem`, `key.pem`, and common TLS paths are listed in `.gitignore`.
+
 ### API Documentation
 Detailed API documentation and usage instructions can be found in http://localhost:8000/docs#
 

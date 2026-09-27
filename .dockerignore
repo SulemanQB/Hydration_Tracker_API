@@ -1,0 +1,16 @@
+# Keep local TLS material out of image builds.
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+cert.pem
+key.pem
+certs/
+certificates/
+ssl/
+tls/
+private/
+.ssl/
+letsencrypt/
