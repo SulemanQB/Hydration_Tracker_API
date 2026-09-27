@@ -118,7 +118,7 @@ if __name__ == "__main__":
     if settings.SSL_ENABLED and settings.SSL_CERT_PATH and settings.SSL_KEY_PATH:
         logger.info("SSL enabled - starting with HTTPS")
         uvicorn.run(
-            api,
+            "app:api",
             host="0.0.0.0",
             port=8000,
             reload=True,
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     else:
         logger.info("SSL disabled - starting with HTTP only")
         uvicorn.run(
-            api,
+            "app:api",
             host="0.0.0.0",
             port=8000,
             reload=True

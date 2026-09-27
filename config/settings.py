@@ -34,7 +34,9 @@ class Settings(BaseSettings):
     RATE_LIMIT_ENABLED: bool = Field(default=True)
     RATE_LIMIT_PER_MINUTE: int = Field(default=60)
     
-    # SSL/TLS Settings
+    # SSL/TLS is optional. Defaults serve HTTP.
+    # Point SSL_CERT_PATH and SSL_KEY_PATH at local or mounted files via the
+    # environment. Do not commit certificate or private key files.
     SSL_ENABLED: bool = Field(default=False, alias="SSL_ENABLED")
     SSL_CERT_PATH: Optional[str] = Field(default=None, alias="SSL_CERT_PATH")
     SSL_KEY_PATH: Optional[str] = Field(default=None, alias="SSL_KEY_PATH")

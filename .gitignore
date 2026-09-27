@@ -1,0 +1,21 @@
+# Local TLS material. Generate certificates on the host or mount them
+# with SSL_CERT_PATH and SSL_KEY_PATH. Do not commit private keys.
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+cert.pem
+key.pem
+certs/
+certificates/
+ssl/
+tls/
+private/
+.ssl/
+letsencrypt/
+**/privkey.pem
+**/fullchain.pem
+**/server.key
+**/server.crt
