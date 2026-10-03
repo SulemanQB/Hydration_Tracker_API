@@ -1,8 +1,8 @@
 import logging
 from fastapi import APIRouter, HTTPException, Path, Body, Query, status
-from src.models.user import User, CreateUser
+from src.models.user import CreateUser, UpdateUser, User
 from database.schemas.user_schema import UserSchema
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from database.database import users_collection
 
 logger = logging.getLogger("hydration_tracker.controllers")
@@ -31,8 +31,6 @@ async def create_user(user: CreateUser = Body(...)):
 
     # Attempt to create the user in the database
     try:
-        # Call the UserSchema.create_user method to create the user
-        return schema.create_user(user)
         return schema.create_user(user)
     except HTTPException as e:
         # If an HTTPException (like 404 or 409) is raised, re-raise it
@@ -75,7 +73,7 @@ async def get_user(
 @router.put("/user/{user_id}/", response_model=User)
 async def update_user(
     user_id: str = Path(..., description="The ID of the user to update"),
-    update_data: Dict[str, Any] = Body(..., description="User data to update"),
+    update_data: UpdateUser = Body(..., description="User data to update"),
 ):
     """
     Update user data by ID.
@@ -89,7 +87,7 @@ async def update_user(
     """
     try:
         logger.info(f"Updating user: {user_id}")
-        return schema.update_user(user_id, update_data)
+        return schema.update_user(user_id, update_data.model_dump(exclude_unset=True))
     except HTTPException:
         raise
     except Exception as e:
@@ -125,8 +123,8 @@ async def delete_user(
 
 @router.get("/users/", response_model=List[User])
 async def list_users(
-    limit: Optional[int] = Query(None, description="Limit the number of users returned"),
-    skip: Optional[int] = Query(0, description="Skip the first N users"),
+    limit: Optional[int] = Query(None, gt=0, description="Limit the number of users returned"),
+    skip: int = Query(0, ge=0, description="Skip the first N users"),
     name: Optional[str] = Query(None, description="Filter users by name"),
 ):
     """

@@ -19,3 +19,20 @@ letsencrypt/
 **/fullchain.pem
 **/server.key
 **/server.crt
+
+# Python and local development artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Local databases and generated API exports
+*.sqlite3
+*.db
+analysis.md

@@ -1,5 +1,4 @@
 import logging
-import bcrypt
 from src.models.user import User, CreateUser
 from database.database import db
 from bson import ObjectId
@@ -9,18 +8,7 @@ from typing import List, Optional
 logger = logging.getLogger("hydration_tracker.schemas")
 
 class UserSchema():
-    """Schema for user operations with enhanced security"""
-    
-    @staticmethod
-    def hash_password(password: str) -> bytes:
-        """Hash a password using bcrypt"""
-        salt = bcrypt.gensalt()
-        return bcrypt.hashpw(password.encode('utf-8'), salt)
-    
-    @staticmethod
-    def verify_password(password: str, hashed_password: bytes) -> bool:
-        """Verify a password against a hash"""
-        return bcrypt.checkpw(password.encode('utf-8'), hashed_password)
+    """MongoDB operations for user records."""
     
     @staticmethod
     def user_serializer(user) -> User:
@@ -43,15 +31,13 @@ class UserSchema():
             user_data = {
                 "name": user.name,
                 "weight": user.weight,
-                # Add hashed password field for future authentication
-                # "password": self.hash_password("default_password")
             }
             
             # Insert user into database
             user_id = db.users.insert_one(user_data).inserted_id
             
             # Create User model with ID
-            user_with_id = user.dict()
+            user_with_id = user.model_dump()
             user_with_id["id"] = str(user_id)
             
             logger.info(f"Created new user: {user.name} (ID: {user_id})")

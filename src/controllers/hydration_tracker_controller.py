@@ -1,6 +1,6 @@
 import logging
 from fastapi import APIRouter, HTTPException, Path, Body, Query
-from src.models.hydration_tracker import HydrationTracker, CreateHydrationTracker
+from src.models.hydration_tracker import ConsumeUpdate, HydrationTracker
 from database.schemas.hydration_tracker_schema import HydrationTrackerSchema
 from datetime import date, datetime
 from typing import List, Optional
@@ -16,12 +16,12 @@ async def today_tracker(
 ):
     """
     Get today's hydration tracker for a specific user.
-    
+
     Creates a new tracker for today if one doesn't exist.
-    
+
     Args:
         user_id: The ID of the user to get the tracker for
-        
+
     Returns:
         HydrationTracker: The hydration tracker for today
     """
@@ -42,11 +42,11 @@ async def get_tracker(
 ):
     """
     Get a hydration tracker for a specific user on a specific date.
-    
+
     Args:
         user_id: The ID of the user to get the tracker for
         tracker_date: The date of the tracker to retrieve
-        
+
     Returns:
         HydrationTracker: The hydration tracker for the specified date
     """
@@ -64,25 +64,22 @@ async def get_tracker(
 async def update_tracker_consume(
     user_id: str = Path(..., description="The ID of the user to update the tracker for"),
     tracker_date: date = Path(..., description="The date of the tracker to update"),
-    update: dict = Body(..., description="The update data with cup size")
+    update: ConsumeUpdate = Body(..., description="The amount of water to add")
 ):
     """
     Update a user's hydration consumption for a specific date.
-    
+
     Args:
         user_id: The ID of the user to update the tracker for
         tracker_date: The date of the tracker to update
         update: Dictionary containing the 'cupsize' to add to consumption
-        
+
     Returns:
         HydrationTracker: The updated hydration tracker
     """
     try:
-        if 'cupsize' not in update or not isinstance(update['cupsize'], (int, float)) or update['cupsize'] <= 0:
-            raise HTTPException(status_code=422, detail="Invalid cupsize value. Must be a positive number.")
-            
         logger.info(f"Updating tracker for user: {user_id} on date: {tracker_date} with data: {update}")
-        return schema.tracker_update_consume(user_id, tracker_date, update)
+        return schema.tracker_update_consume(user_id, tracker_date, update.model_dump())
     except HTTPException as e:
         logger.warning(f"HTTP error when updating tracker: {e.detail}")
         raise
@@ -97,18 +94,18 @@ async def create_specific_tracker(
 ):
     """
     Create a hydration tracker for a specific user on a specific date.
-    
+
     Args:
         user_id: The ID of the user to create a tracker for
         tracker_date: The date for which to create a tracker
-        
+
     Returns:
         HydrationTracker: The newly created hydration tracker
     """
     try:
         if tracker_date > datetime.now().date():
             raise HTTPException(status_code=400, detail="Cannot create tracker for future dates")
-            
+
         logger.info(f"Creating tracker for user: {user_id} on date: {tracker_date}")
         return schema.create_tracker(user_id, tracker_date)
     except HTTPException as e:
@@ -121,15 +118,15 @@ async def create_specific_tracker(
 @router.get("/user/{user_id}/history/", response_model=List[HydrationTracker], tags=["tracker"])
 async def list_trackers(
     user_id: str = Path(..., description="The ID of the user to get trackers for"),
-    limit: Optional[int] = Query(None, description="Limit the number of records returned")
+    limit: Optional[int] = Query(None, gt=0, description="Limit the number of records returned")
 ):
     """
     Get all hydration trackers for a specific user.
-    
+
     Args:
         user_id: The ID of the user to get trackers for
         limit: Optional limit on the number of records to return
-        
+
     Returns:
         List[HydrationTracker]: A list of all hydration trackers for the user
     """

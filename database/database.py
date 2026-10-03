@@ -2,13 +2,10 @@ import logging
 import time
 import functools
 import contextlib
-from typing import Dict, Any, Callable, Optional
 from pymongo import MongoClient, ASCENDING, DESCENDING
-from pymongo.collection import Collection
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError, PyMongoError
 from config.settings import settings
 
-# Configure logging
 logger = logging.getLogger("hydration_tracker.database")
 
 # Connection constants
@@ -40,14 +37,10 @@ class Database:
                     serverSelectionTimeoutMS=5000,  # Server selection timeout
                     waitQueueTimeoutMS=5000  # Wait queue timeout
                 )
-                # Test connection
                 server_info = self.client.server_info()
                 logger.info(f"Connected to MongoDB (version: {server_info['version']})")
                 
-                # Set database
                 self.db = self.client[settings.DB_NAME]
-                
-                # Initialize collections and indexes
                 self._setup_collections()
                 return
             except (ConnectionFailure, ServerSelectionTimeoutError) as e:
@@ -63,11 +56,8 @@ class Database:
     
     def _setup_collections(self):
         """Set up collections and indexes"""
-        # Define collections
         self.users = self.db["users"]
         self.trackers = self.db["trackers"]
-        
-        # Create indexes for better performance
         self.users.create_index([("name", ASCENDING)])
         self.trackers.create_index([("id_owner", ASCENDING)])
         self.trackers.create_index([("date", DESCENDING)])
@@ -103,9 +93,7 @@ class Database:
             return wrapper
         return decorator
 
-# Initialize database
 db = Database()
 
-# For backward compatibility
 users_collection = db.users
 trackers_collection = db.trackers
